@@ -1,0 +1,28 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: omron_mariadb
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: omron_energy
+      MARIADB_USER: omron_user
+      MARIADB_PASSWORD: omron_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mariadb_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # バッチ実行用のコンテナ
+  batch:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: omron_batch
+    environment:
+      DB_DSN: "omron_user:omron_password@tcp(db:3306)/omron_energy?parseTime=true"
+      OMRON_IP: "192.168.50.25"
+      OMRON_DEVICE_ID: "00168978"
+    depends_on:
+      - db
