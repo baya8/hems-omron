@@ -1,12 +1,16 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
-COPY go.mod ./
-# COPY go.sum* ./
+
+# go.mod と go.sum を先にコピーして依存関係をキャッシュ
+COPY go.mod go.sum ./
 RUN go mod download
 
+# 全ソースコードをコピー
 COPY . .
-RUN go build -o /omron_batch batch/main.go batch/db.go batch/omron.go batch/models.go
+
+# 全ての .go ファイルをコンパイル対象に含める
+RUN go build -o /omron_batch batch/*.go
 
 FROM alpine:latest
 RUN apk --no-cache add tzdata

@@ -9,27 +9,20 @@ import (
 type EnergyData struct {
 	Date         string         `db:"date"`
 	Hour         int            `db:"hour"`
-	Gen1         sql.NullInt64  `db:"gen_1"`
-	Gen2         sql.NullInt64  `db:"gen_2"`
-	Gen3         sql.NullInt64  `db:"gen_3"`
-	Gen4         sql.NullInt64  `db:"gen_4"`
-	Gen5         sql.NullInt64  `db:"gen_5"`
+	Gen1         int            `db:"gen_1"`
+	Gen2         int            `db:"gen_2"`
+	Gen3         int            `db:"gen_3"`
+	Gen4         int            `db:"gen_4"`
+	Gen5         int            `db:"gen_5"`
 	GenTotal     int            `db:"gen_total"`
 	Consumption  int            `db:"consumption"`
 	Selling      int            `db:"selling"`
 	Buying       int            `db:"buying"`
+	IsFailed     bool           `db:"is_failed"`
+	ErrorMessage sql.NullString `db:"error_message"`
 	FetchedAt    time.Time      `db:"fetched_at"`
 	RetriedAt    sql.NullTime   `db:"retried_at"`
 	CorrectedAt  sql.NullTime   `db:"corrected_at"`
-}
-
-// FetchStatus は fetch_status テーブルのレコード
-type FetchStatus struct {
-	Date         string         `db:"date"`
-	Hour         int            `db:"hour"`
-	IsFailed     bool           `db:"is_failed"`
-	ErrorMessage sql.NullString `db:"error_message"`
-	UpdatedAt    time.Time      `db:"updated_at"`
 }
 
 // HourlyRecord はオムロンAPIから取得した1時間分のデータ

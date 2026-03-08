@@ -5,27 +5,19 @@ USE omron_energy;
 CREATE TABLE IF NOT EXISTS energy_data (
     date DATE NOT NULL,
     hour TINYINT NOT NULL,
-    gen_1 INT DEFAULT NULL COMMENT 'パワーコントローラ1発電量',
-    gen_2 INT DEFAULT NULL COMMENT 'パワーコントローラ2発電量',
-    gen_3 INT DEFAULT NULL COMMENT '将来用3',
-    gen_4 INT DEFAULT NULL COMMENT '将来用4',
-    gen_5 INT DEFAULT NULL COMMENT '将来用5',
-    gen_total INT NOT NULL COMMENT '1-5の合計発電量',
-    consumption INT NOT NULL COMMENT '消費電力量',
-    selling INT NOT NULL COMMENT '売電量',
-    buying INT NOT NULL COMMENT '買電量',
-    fetched_at DATETIME NOT NULL COMMENT 'APIから取得しDBへ保存した日時',
-    retried_at DATETIME DEFAULT NULL COMMENT 'リトライ等で成功した再取得日時',
+    gen_1 INT NOT NULL DEFAULT 0 COMMENT 'パワーコントローラ1発電量',
+    gen_2 INT NOT NULL DEFAULT 0 COMMENT 'パワーコントローラ2発電量',
+    gen_3 INT NOT NULL DEFAULT 0 COMMENT '将来用3',
+    gen_4 INT NOT NULL DEFAULT 0 COMMENT '将来用4',
+    gen_5 INT NOT NULL DEFAULT 0 COMMENT '将来用5',
+    gen_total INT NOT NULL DEFAULT 0 COMMENT '1-5の合計発電量',
+    consumption INT NOT NULL DEFAULT 0 COMMENT '消費電力量',
+    selling INT NOT NULL DEFAULT 0 COMMENT '売電量',
+    buying INT NOT NULL DEFAULT 0 COMMENT '買電量',
+    is_failed BOOLEAN NOT NULL DEFAULT FALSE COMMENT '取得失敗フラグ',
+    error_message TEXT DEFAULT NULL COMMENT 'エラー内容',
+    fetched_at DATETIME NOT NULL COMMENT '保存日時',
+    retried_at DATETIME DEFAULT NULL COMMENT '再取得成功日時',
     corrected_at DATETIME DEFAULT NULL COMMENT '手動補正日時',
-    PRIMARY KEY (date, hour)
-);
-
--- データ取得の状態を管理する（リトライ対象の判定用）
-CREATE TABLE IF NOT EXISTS fetch_status (
-    date DATE NOT NULL,
-    hour TINYINT NOT NULL,
-    is_failed BOOLEAN NOT NULL DEFAULT FALSE,
-    error_message TEXT,
-    updated_at DATETIME NOT NULL,
     PRIMARY KEY (date, hour)
 );

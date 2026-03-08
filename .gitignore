@@ -1,0 +1,31 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+omron_batch
+omron_energy_tool
+get_all_realtime
+get_properties
+discover
+check_instances
+fetch_omron_hourly
+fetch_omron_final_history
+
+# Docker Data & Secrets
+docker/.env
+docker/mariadb_data/
+docker/grafana_data/
+
+# Go
+go.work
+.cache/
+
+# OS specific
+.DS_Store
+.idea/
+.vscode/
+*.swp
+backup.sql

@@ -9,6 +9,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+var jst = time.FixedZone("Asia/Tokyo", 9*60*60)
+
 type DB struct {
 	conn *sql.DB
 }
@@ -19,7 +21,6 @@ func ConnectDB(dsn string) (*DB, error) {
 		return nil, err
 	}
 	
-	// 接続確認（DBが立ち上がるまで少し待機するリトライを入れるとより堅牢）
 	for i := 0; i < 5; i++ {
 		err = db.Ping()
 		if err == nil {
@@ -41,10 +42,9 @@ func (db *DB) Close() {
 }
 
 // SaveHourlyData は 1時間分のデータを保存または更新する
-func (db *DB) SaveHourlyData(date string, record HourlyRecord) error {
-	now := time.Now()
+func (db *DB) SaveHourlyData(date string, record HourlyRecord, recordFailure bool) error {
+	now := time.Now().In(jst)
 	
-	// すでにデータがあるか確認（リトライかどうかを判定）
 	var exists bool
 	err := db.conn.QueryRow("SELECT EXISTS(SELECT 1 FROM energy_data WHERE date = ? AND hour = ?)", date, record.Hour).Scan(&exists)
 	if err != nil {
@@ -52,43 +52,39 @@ func (db *DB) SaveHourlyData(date string, record HourlyRecord) error {
 	}
 
 	if exists {
-		// リトライ成功として更新
 		query := `
 			UPDATE energy_data SET
 				gen_1 = ?, gen_2 = ?, gen_total = ?, consumption = ?, selling = ?, buying = ?,
-				retried_at = ?
+				is_failed = FALSE, error_message = 'recovered', retried_at = ?
 			WHERE date = ? AND hour = ?`
 		_, err = db.conn.Exec(query, record.Gen1, record.Gen2, record.GenTotal, record.Consumption, record.Selling, record.Buying, now, date, record.Hour)
 	} else {
-		// 新規保存
 		query := `
 			INSERT INTO energy_data 
-				(date, hour, gen_1, gen_2, gen_total, consumption, selling, buying, fetched_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				(date, hour, gen_1, gen_2, gen_total, consumption, selling, buying, is_failed, error_message, fetched_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, NULL, ?)`
 		_, err = db.conn.Exec(query, date, record.Hour, record.Gen1, record.Gen2, record.GenTotal, record.Consumption, record.Selling, record.Buying, now)
 	}
-
-	if err != nil {
-		return err
-	}
-
-	// 取得ステータスを更新
-	return db.UpdateFetchStatus(date, record.Hour, false, "")
-}
-
-// UpdateFetchStatus は取得ステータスを更新する
-func (db *DB) UpdateFetchStatus(date string, hour int, isFailed bool, errMsg string) error {
-	query := `
-		INSERT INTO fetch_status (date, hour, is_failed, error_message, updated_at)
-		VALUES (?, ?, ?, ?, ?)
-		ON DUPLICATE KEY UPDATE is_failed = VALUES(is_failed), error_message = VALUES(error_message), updated_at = VALUES(updated_at)`
-	_, err := db.conn.Exec(query, date, hour, isFailed, errMsg, time.Now())
 	return err
 }
 
-// GetFailedDates は失敗している日付の一覧を取得する（リトライ用）
+// SaveFailedRecord は取得に失敗した際に、値を 0 として保存する
+func (db *DB) SaveFailedRecord(date string, hour int, errMsg string) error {
+	now := time.Now().In(jst)
+	
+	// 失敗時は各値を 0 にして保存、すでにレコードがある場合は is_failed を TRUE にしてエラーを記録
+	query := `
+		INSERT INTO energy_data 
+			(date, hour, gen_1, gen_2, gen_total, consumption, selling, buying, is_failed, error_message, fetched_at)
+		VALUES (?, ?, 0, 0, 0, 0, 0, 0, TRUE, ?, ?)
+		ON DUPLICATE KEY UPDATE is_failed = TRUE, error_message = VALUES(error_message), fetched_at = VALUES(fetched_at)`
+	_, err := db.conn.Exec(query, date, hour, errMsg, now)
+	return err
+}
+
+// GetFailedDates は取得に失敗している（is_failed=true）日付の一覧を取得する
 func (db *DB) GetFailedDates() ([]string, error) {
-	rows, err := db.conn.Query("SELECT DISTINCT date FROM fetch_status WHERE is_failed = TRUE")
+	rows, err := db.conn.Query("SELECT DISTINCT date FROM energy_data WHERE is_failed = TRUE")
 	if err != nil {
 		return nil, err
 	}
@@ -103,4 +99,14 @@ func (db *DB) GetFailedDates() ([]string, error) {
 		dates = append(dates, date)
 	}
 	return dates, nil
+}
+
+// IsDateFetched は、その日の全データ（24時間分）が正常に取得できているか確認する
+func (db *DB) IsDateFetched(date string) (bool, error) {
+	var count int
+	err := db.conn.QueryRow("SELECT COUNT(*) FROM energy_data WHERE date = ? AND is_failed = FALSE", date).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count >= 24, nil
 }

@@ -4,14 +4,15 @@ services:
     container_name: omron_mariadb
     restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: rootpassword
-      MARIADB_DATABASE: omron_energy
-      MARIADB_USER: omron_user
-      MARIADB_PASSWORD: omron_password
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      TZ: Asia/Tokyo
     ports:
       - "3306:3306"
     volumes:
-      - ./mariadb_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   # バッチ実行用のコンテナ
@@ -21,8 +22,28 @@ services:
       dockerfile: docker/Dockerfile
     container_name: omron_batch
     environment:
-      DB_DSN: "omron_user:omron_password@tcp(db:3306)/omron_energy?parseTime=true"
-      OMRON_IP: "192.168.50.25"
-      OMRON_DEVICE_ID: "00168978"
+      DB_DSN: "${MARIADB_USER}:${MARIADB_PASSWORD}@tcp(db:3306)/${MARIADB_DATABASE}?parseTime=true"
+      OMRON_IP: "${OMRON_IP}"
+      OMRON_DEVICE_ID: "${OMRON_DEVICE_ID}"
+      TZ: Asia/Tokyo
     depends_on:
       - db
+
+  # 可視化ツール Grafana
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: omron_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - TZ=Asia/Tokyo
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - db
+
+volumes:
+  db_data:
+  grafana_data:
