@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	targetIP = "192.168.50.25"
-	deviceID = "00168978"
+	targetIP = "0.0.0.0"
+	deviceID = "00000000"
 )
 
 func main() {

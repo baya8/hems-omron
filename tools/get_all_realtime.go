@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const targetIP = "192.168.50.25:3610"
+const targetIP = "0.0.0.0:3610"
 
 func main() {
 	fmt.Printf("Fetching real-time energy data from %s...\n", targetIP)

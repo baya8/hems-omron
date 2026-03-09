@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	targetIP = "192.168.50.25:3610"
+	targetIP = "0.0.0.0:3610"
 )
 
 func main() {
