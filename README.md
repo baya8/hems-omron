@@ -54,7 +54,7 @@
 ## 5. セットアップと実行
 
 ### 5.1 環境設定
-`docker/.env` ファイルを作成（または編集）し、各設定値を入力してください。
+`docker/.env.example` ファイルを編集し、各設定値を入力してください。
 ```env
 MARIADB_ROOT_PASSWORD=<YOUR_ROOT_PASSWORD>
 MARIADB_DATABASE=omron_energy
@@ -97,18 +97,13 @@ docker compose run --rm batch /omron_batch -start 20170901
 
 ```sql
 SELECT
-  time,
+  UNIX_TIMESTAMP(date + INTERVAL hour HOUR) AS time,
   gen_total AS "発電量(Wh)",
   consumption AS "消費量(Wh)",
   buying AS "買電(Wh)",
   selling AS "売電(Wh)"
-FROM (
-  SELECT
-    date + INTERVAL hour HOUR AS time,
-    gen_total, consumption, buying, selling
-  FROM energy_data
-) AS sub
-WHERE $__timeFilter(time)
+FROM energy_data
+WHERE $__timeFilter(date + INTERVAL hour HOUR)
 ORDER BY time
 ```
 
