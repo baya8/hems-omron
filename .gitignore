@@ -29,3 +29,4 @@ go.work
 .vscode/
 *.swp
 backup.sql
+data_backup.sql

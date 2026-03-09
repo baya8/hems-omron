@@ -20,6 +20,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    image: hems-batch:latest
     container_name: omron_batch
     environment:
       DB_DSN: "${MARIADB_USER}:${MARIADB_PASSWORD}@tcp(db:3306)/${MARIADB_DATABASE}?parseTime=true"
