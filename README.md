@@ -93,8 +93,7 @@ docker compose run --rm batch /omron_batch -start 20170901
    - Host: `db:3306`
    - Database: `omron_energy`
    - User/PW: `omron_user/omron_password`
-3. ダッシュボードを作成し、以下のSQL等でグラフを描画します。
-
+### 6.1 基本の時系列グラフ（1時間ごと）
 ```sql
 SELECT
   UNIX_TIMESTAMP(date + INTERVAL hour HOUR) AS time,
@@ -106,6 +105,26 @@ FROM energy_data
 WHERE $__timeFilter(date + INTERVAL hour HOUR)
 ORDER BY time
 ```
+
+### 6.2 累計（積算）グラフ
+期間内でのエネルギーの蓄積を確認したい場合は、以下のウィンドウ関数を使用したクエリを使用してください。
+```sql
+SELECT
+  UNIX_TIMESTAMP(time) AS time,
+  SUM(gen_total) OVER (ORDER BY time) AS "累計発電(Wh)",
+  SUM(consumption) OVER (ORDER BY time) AS "累計消費(Wh)",
+  SUM(buying) OVER (ORDER BY time) AS "累計買電(Wh)",
+  SUM(selling) OVER (ORDER BY time) AS "累計売電(Wh)"
+FROM (
+  SELECT
+    date + INTERVAL hour HOUR AS time,
+    gen_total, consumption, buying, selling
+  FROM energy_data
+  WHERE $__timeFilter(date + INTERVAL hour HOUR)
+) AS sub
+ORDER BY time
+```
+※ Grafana のパネル設定で **"Graph styles" > "Fill opacity"** を上げ、**"Stacking and null value" > "Stacking"** を `Normal` に設定すると、より視覚的に分かりやすい積算グラフになります。
 
 ## 7. 免責事項
 
