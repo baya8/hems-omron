@@ -56,11 +56,19 @@ func main() {
 
 	// 2. 単発取得モード
 	if *targetDate == "" {
-		*targetDate = time.Now().AddDate(0, 0, -1).Format("20060102")
+		// デフォルトは「今日」を取得対象とする（日中の進捗確認のため）
+		*targetDate = time.Now().In(jst).Format("20060102")
 	}
 
 	log.Printf("Starting batch for date: %s", *targetDate)
 	processor.ProcessDate(*targetDate, true)
+
+	// 当日分だけでなく、前日分も確実に更新する（前日の最終データ確定のため）
+	yesterday := time.Now().In(jst).AddDate(0, 0, -1).Format("20060102")
+	if *targetDate != yesterday {
+		log.Printf("Also updating yesterday: %s", yesterday)
+		processor.ProcessDate(yesterday, true)
+	}
 
 	// 3. 過去の失敗分のリトライ
 	processor.RetryFailedDates(*targetDate)
