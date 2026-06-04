@@ -9,8 +9,9 @@ services:
       MARIADB_USER: ${MARIADB_USER}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
       TZ: Asia/Tokyo
-    ports:
-      - "3306:3306"
+    # 外部(ホスト)からのアクセスを遮断し、内部ネットワーク内でのみ通信
+    networks:
+      - hems-omron
     volumes:
       - db_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -27,6 +28,8 @@ services:
       OMRON_IP: "${OMRON_IP}"
       OMRON_DEVICE_ID: "${OMRON_DEVICE_ID}"
       TZ: Asia/Tokyo
+    networks:
+      - hems-omron
     depends_on:
       - db
 
@@ -40,10 +43,16 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - TZ=Asia/Tokyo
+    networks:
+      - hems-omron
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
       - db
+
+networks:
+  hems-omron:
+    driver: bridge
 
 volumes:
   db_data:
